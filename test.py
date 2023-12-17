@@ -45,29 +45,54 @@ threadLocal = threading.local()
 
 def get_driver():
     driver = getattr(threadLocal, 'driver', None)
+    user_agent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.50 Safari/537.36'    
     if driver is None:
         chromeOptions = webdriver.ChromeOptions()
-        # chromeOptions.add_argument("--headless")
+        chromeOptions.add_argument("--headless")
+        chromeOptions.add_argument('user-agent={0}'.format(user_agent))
         driver = webdriver.Chrome(options=chromeOptions)
         setattr(threadLocal, 'driver', driver)
     return driver
 
 def get_url_from_site_map():
     url = "https://www.costco.ca/SiteMapDisplayView"
+    user_agent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.50 Safari/537.36'
+    # s = requests.Session()
+    # with requests.Session() as s:
+    #     s.headers.update({"user-agent": user_agent})
+    #     response = s.get(url)
     driver = get_driver()
     driver.get(url)
     # time.sleep(1)
     sauce = BeautifulSoup(driver.page_source, "lxml")
     # print(sauce)
     all_sites = sauce.find_all('a', href=True)
-    for a in all_sites:
-        print(a.get("href"))
-    driver.close()
+    # for a in all_sites:
+    #     print(a.get("href"))
+    get_title("https://www.costco.ca/learning-systems.html")
+    # driver.close()
 
 
 def get_title(url):
     driver = get_driver()
     driver.get(url)
+    sauce = BeautifulSoup(driver.page_source, "lxml")
+    # product_List = sauce.find("div", {"automation-id":"productList"})
+    price_divs = sauce.find_all("div", {"class": "price"})
+    price_list = [pd.string.strip() for pd in price_divs]
+    product_link = [pd.find_parent().find_next_sibling() for pd in price_divs]
+
+    for price, link in zip(price_list, product_link):
+        print(link.a.get('href'), price)
+
+    # for pd in price_divs:
+    #     print(pd.string.strip())
+    #     # print(pd.find_parent())
+    #     print(pd.find_parent().find_next_sibling().find_child())
+    # sauce.find_all("span", class_="description")
+    # print(driver.page_source)
+    # with open("test.html", "w") as file:
+    #     file.write(driver.page_source)
     driver.close()
 
 if __name__ == '__main__':
