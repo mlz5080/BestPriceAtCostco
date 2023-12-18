@@ -66,33 +66,28 @@ def get_url_from_site_map():
     # time.sleep(1)
     sauce = BeautifulSoup(driver.page_source, "lxml")
     # print(sauce)
-    all_sites = sauce.find_all('a', href=True)
-    # for a in all_sites:
-    #     print(a.get("href"))
-    get_title("https://www.costco.ca/learning-systems.html")
+    site_map_div = sauce.find("div", class_="costcoBD-sitemap")
+    all_sites = site_map_div.find_all('a', href=True)
+    for a in all_sites:
+        print(a.string.strip(), a.get("href"))
+    get_product("https://www.costco.ca/learning-systems.html")
     # driver.close()
 
+def retrive_name_and_links(div):
+    sub_a = div.find_parent().find_next_sibling().a
+    return (sub_a.string.strip(), sub_a.get('href'))
 
-def get_title(url):
+def get_product(url):
     driver = get_driver()
     driver.get(url)
     sauce = BeautifulSoup(driver.page_source, "lxml")
     # product_List = sauce.find("div", {"automation-id":"productList"})
     price_divs = sauce.find_all("div", {"class": "price"})
     price_list = [pd.string.strip() for pd in price_divs]
-    product_link = [pd.find_parent().find_next_sibling() for pd in price_divs]
+    product_info = [retrive_name_and_links(pd) for pd in price_divs]
 
-    for price, link in zip(price_list, product_link):
-        print(link.a.get('href'), price)
-
-    # for pd in price_divs:
-    #     print(pd.string.strip())
-    #     # print(pd.find_parent())
-    #     print(pd.find_parent().find_next_sibling().find_child())
-    # sauce.find_all("span", class_="description")
-    # print(driver.page_source)
-    # with open("test.html", "w") as file:
-    #     file.write(driver.page_source)
+    for price, info in zip(price_list, product_info):
+        print(info[0], price, info[1])
     driver.close()
 
 if __name__ == '__main__':
