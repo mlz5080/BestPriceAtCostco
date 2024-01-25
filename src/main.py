@@ -2,8 +2,9 @@ import requests
 from concurrent.futures import ProcessPoolExecutor
 from selenium import webdriver
 import os
-from urllib.parse import urljoin
 from multiprocessing.pool import ThreadPool, Pool
+from DataTypes.Dynamo import DynamoCostcoItem
+from DataTypes.MySQL import MySQLCostcoItem
 from bs4 import BeautifulSoup
 import threading
 import time
@@ -13,26 +14,10 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import re
 
-domain = "https://www.costco.ca"
-
-class CostcoItem:
-    def __init__(self, item_id, name, price, price_range, hmp, is_on_sale, link):
-        self.id = item_id
-        self.price = price
-        self.price_range = price_range
-        self.history_minimum_price = hmp
-        self.name = name
-        self.link = link
-        self.is_on_sale = is_on_sale
-
-    def __str__(self):
-        return " ".join([self.id, self.name, self.price, "is on sale" if self.is_on_sale else "not on sale", self.link])
-
+costco_domain = "https://www.costco.ca"
+costco_db_table_name = "costco-products-info"
 
 def get_shop_by_category_links(link):
-    # res = requests.get(link)
-    # soup = BeautifulSoup(res.text,"lxml")
-    # titles = [str(urljoin(url,items.get("href"))) for items in soup.select(".question-hyperlink")]
 
     driver = get_driver()
     driver.get(link)
@@ -42,9 +27,6 @@ def get_shop_by_category_links(link):
     target_element.click()
     sauce = BeautifulSoup(driver.page_source,"lxml")
     level1_html = [domain+li.a.get("href") for li in sauce.find('div', id="level1-all-departments").find_all("li")]
-    # print(level1_html)
-    # driver.close()
-    # rq = requests.get("https://www.costco.ca/everlast-1910-classic-training-leather-glove-kit.product.1468886.html",timeout=5)
     selenium_user_agent = driver.execute_script("return navigator.userAgent;")
     s = requests.Session()
     s.headers.update({"user-agent": selenium_user_agent})
@@ -64,6 +46,7 @@ def get_driver():
         chromeOptions = webdriver.ChromeOptions()
         chromeOptions.add_argument("--headless")
         chromeOptions.add_argument('user-agent={0}'.format(user_agent))
+        chromeOptions.add_argument("--log-level=3")
         driver = webdriver.Chrome(options=chromeOptions)
         setattr(threadLocal, 'driver', driver)
     return driver
@@ -73,53 +56,68 @@ def get_url_from_site_map():
     user_agent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.50 Safari/537.36'
     driver = get_driver()
     driver.get(url)
-    # time.sleep(1)
     sauce = BeautifulSoup(driver.page_source, "lxml")
-    # print(sauce)
     site_map_div = sauce.find("div", class_="costcoBD-sitemap")
     all_sites = site_map_div.find_all('a', href=True)
-    # for a in all_sites:
-    #     print(a.string.strip(), a.get("href"))
-    get_product("https://www.costco.ca/coffee-tea.html")
-    # driver.close()
+    all_sites = [costco_domain+a.get("href") for a in all_sites]
+    # print(all_sites)
+    return all_sites
 
-def retrive_product_info(div):
-    product_price = div.string.strip()
-    item_id = re.findall(r'\d+',div.get("id").strip())[0]
+def retrive_product_info(div, sauce, cat):
+    product_price_str = div.string
+    # item_id, name, price, price_range, hmp, is_on_sale, link
+    price_range = "-1"
+    if not product_price_str:
+        product_price, price_range = div.contents[0].strip(), div.contents[-1].strip()
+        thousand_price_list = re.findall(r'\d+\,\d+\.\d+', price_range)
+        price_range = thousand_price_list[0].replace(",", "") if thousand_price_list else re.findall(r'\d+.\d+', price_range)[0]
+    else:
+        product_price = div.string.strip()
+    thousand_price_list = re.findall(r'\d+\,\d+\.\d+', product_price)
+    product_price = thousand_price_list[0].replace(",", "") if thousand_price_list else re.findall(r'\d+.\d+', product_price)[0]
+    item_id = re.findall(r'\d+', div.get("id").strip())[0]
     div_parent = div.find_parent()
     span = div_parent.find_next_sibling("span")
-    # print("instantSavings" in div_parent.find_next_sibling("p").get("automation-id"))
-
     is_on_sale = False
-
     if div_parent.find_next_sibling("p") and div_parent.find_next_sibling("p").has_attr("automation-id"):
         is_on_sale = "instantSavings" in div_parent.find_next_sibling("p").get("automation-id")
     sub_a = span.find("a")
     product_name = sub_a.string.strip()
     product_link = sub_a.get('href')
-    
-    return CostcoItem(item_id, product_name, product_price, is_on_sale, product_link)
+    img_tag = sauce.find("img", src = lambda value: "imageId="+item_id in value)
+    if img_tag.get("src"):
+        image_link = img_tag.get("src")
+    else:
+        image_link = img_tag.get("data-src")
+    dynamo_dao = DynamoCostcoItem(item_id, product_name, product_price, price_range, is_on_sale, product_link, image_link, cat)
+    dynamo_dao.update_item()
+    mysql_dao = MySQLCostcoItem(item_id, product_name, product_price, price_range, is_on_sale, product_link, image_link, cat)
+    mysql_dao.update_item()
 
-def get_product(url):
+def get_costco_product(url):
+    print("#"*10, url, "#"*10)
+    category = url.split("https://www.costco.ca/")[1].replace(".html", "")
     driver = get_driver()
-
     has_next_page = True
+    page = 1
+    driver.get(url)
     while has_next_page:
-        driver.get(url)
         sauce = BeautifulSoup(driver.page_source, "lxml")
         price_divs = sauce.find_all("div", {"class": "price"})
-        # print(price_divs)
+        if not price_divs:
+            print("errors")
+            return
         for pd in price_divs:
-            if not pd.string:
-                print(pd.contents)
-        product_info = [retrive_product_info(pd) for pd in price_divs]
-        for product_info in product_info:
-            print(product_info)
-        print(sauce.find("li", class_="forward"))
-        break
-    driver.close()
+            retrive_product_info(pd, sauce, category)
+        has_next_page = sauce.find("li", class_="forward") != None
+        page = page+1 if has_next_page else page
+        try:
+            driver.execute_script("arguments[0].click();", WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "i[automation-id='nextPageNavigationLink']"))))
+        except:
+            print("Done")
+            break
 
 if __name__ == '__main__':
-    get_url_from_site_map()
+    # get_url_from_site_map()
     # get_shop_by_category_links(domain)
-    # Pool(os.cpu_count()).map(get_title, get_shop_by_category_links(domain))
+    Pool(os.cpu_count()).map(get_costco_product, get_url_from_site_map())
