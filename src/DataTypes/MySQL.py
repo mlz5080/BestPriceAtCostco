@@ -57,10 +57,7 @@ class MySQLCostcoItem(CostcoItem):
         need_update |= cfg[3] != self.name
         need_update |= cfg[4] != self.image_link
         need_update |= float(cfg[6]) != float(self.price)
-        if cfg[7] and self.price_range:
-            need_update |= float(cfg[7]) != float(self.price_range)
-        elif not cfg[7] and self.price_range:
-            need_update = True
+        need_update |= float(cfg[7]) != float(self.price_range)
         need_update |= cfg[8] != self.category
         return need_update
 

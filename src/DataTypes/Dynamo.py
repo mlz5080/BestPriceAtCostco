@@ -26,7 +26,7 @@ class DynamoCostcoItem(CostcoItem):
             UpdateExpression = "SET #min = :price"
             ConditionExpression ="attribute_not_exists(#min) OR #min < :price"
             ReturnValues = "NONE"
-            print("Updating Minimum price", self.name)
+            print("Dynamo Updating Minimum price", self.name)
             DynamoCostcoItem.client.update_item(
                 ExpressionAttributeNames=ExpressionAttributeNames,
                 ExpressionAttributeValues=ExpressionAttributeValues,
@@ -36,7 +36,7 @@ class DynamoCostcoItem(CostcoItem):
                 UpdateExpression=UpdateExpression,
                 ConditionExpression=ConditionExpression
             )
-            print("Minimum Price updated")
+            print("Dynamo Minimum Price updated")
         except Exception as e:
             print(e)
             print(self.name, "has no minimum price update")
@@ -84,7 +84,7 @@ class DynamoCostcoItem(CostcoItem):
             ConditionExpression += " OR attribute_not_exists(#name) OR #name <> :name"
             ConditionExpression += " OR attribute_not_exists(#priceRange) OR #priceRange <> :priceRange"
             ConditionExpression += " OR attribute_not_exists(#category) OR #category <> :category"
-            print("Updating other information", self.name)
+            print("Dynamo Updating other information", self.name)
             DynamoCostcoItem.client.update_item(
                 ExpressionAttributeNames=ExpressionAttributeNames,
                 ExpressionAttributeValues=ExpressionAttributeValues,
@@ -94,7 +94,7 @@ class DynamoCostcoItem(CostcoItem):
                 UpdateExpression=UpdateExpression,
                 ConditionExpression=ConditionExpression
             )
-            print("Updated other information", self.name)
+            print("Dynamo Updated other information", self.name)
         except Exception as e:
             print(e)
             print(self.name, "has no basic information update")

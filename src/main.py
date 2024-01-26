@@ -13,6 +13,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import re
+import boto3
 
 costco_domain = "https://www.costco.ca"
 costco_db_table_name = "costco-products-info"
@@ -63,7 +64,7 @@ def get_url_from_site_map():
     # print(all_sites)
     return all_sites
 
-def retrive_product_info(div, sauce, cat):
+def retrive_product_info(div, sauce):
     product_price_str = div.string
     # item_id, name, price, price_range, hmp, is_on_sale, link
     price_range = "-1"
@@ -75,20 +76,28 @@ def retrive_product_info(div, sauce, cat):
         product_price = div.string.strip()
     thousand_price_list = re.findall(r'\d+\,\d+\.\d+', product_price)
     product_price = thousand_price_list[0].replace(",", "") if thousand_price_list else re.findall(r'\d+.\d+', product_price)[0]
+    
     item_id = re.findall(r'\d+', div.get("id").strip())[0]
+    
     div_parent = div.find_parent()
     span = div_parent.find_next_sibling("span")
     is_on_sale = False
     if div_parent.find_next_sibling("p") and div_parent.find_next_sibling("p").has_attr("automation-id"):
         is_on_sale = "instantSavings" in div_parent.find_next_sibling("p").get("automation-id")
+    
     sub_a = span.find("a")
     product_name = sub_a.string.strip()
     product_link = sub_a.get('href')
-    img_tag = sauce.find("img", src = lambda value: "imageId="+item_id in value)
-    if img_tag.get("src"):
-        image_link = img_tag.get("src")
+
+    cat = sauce.find("script", string=lambda val: val is not None and "categoryName" in val).text.strip()
+    cat = re.findall(r"categoryName\: '(\w+.*)'", cat)[0]
+
+    image_tag = sauce.find("img", alt=lambda val: val is not None and product_name in val)
+    if image_tag and image_tag.get("src"):
+        image_link = image_tag.get("src")
     else:
-        image_link = img_tag.get("data-src")
+        image_link = image_tag.get("data-src")
+
     dynamo_dao = DynamoCostcoItem(item_id, product_name, product_price, price_range, is_on_sale, product_link, image_link, cat)
     dynamo_dao.update_item()
     mysql_dao = MySQLCostcoItem(item_id, product_name, product_price, price_range, is_on_sale, product_link, image_link, cat)
@@ -103,12 +112,14 @@ def get_costco_product(url):
     driver.get(url)
     while has_next_page:
         sauce = BeautifulSoup(driver.page_source, "lxml")
-        price_divs = sauce.find_all("div", {"class": "price"})
-        if not price_divs:
-            print("errors")
+        product_div_parent = sauce.find("div", attrs={"automation-id":"productList"})
+        if not product_div_parent:
+            print("Did not find product div")
             return
-        for pd in price_divs:
-            retrive_product_info(pd, sauce, category)
+        product_div_list = product_div_parent.find_all("div", class_= lambda val: val is not None and "product" in val and "col-xs" in val)
+        for pd in product_div_list:
+            price_div = pd.find("div", id=lambda val: val is not None and "price" in val)
+            retrive_product_info(price_div, pd)
         has_next_page = sauce.find("li", class_="forward") != None
         page = page+1 if has_next_page else page
         try:

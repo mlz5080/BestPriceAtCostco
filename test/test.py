@@ -26,7 +26,7 @@ def get_driver():
         setattr(threadLocal, 'driver', driver)
     return driver
 
-def retrive_product_info(div, sauce, cat):
+def retrive_product_info(div, sauce):
     product_price_str = div.string
     # item_id, name, price, price_range, hmp, is_on_sale, link
     price_range = "-1"
@@ -38,6 +38,7 @@ def retrive_product_info(div, sauce, cat):
         product_price = div.string.strip()
     thousand_price_list = re.findall(r'\d+\,\d+\.\d+', product_price)
     product_price = thousand_price_list[0].replace(",", "") if thousand_price_list else re.findall(r'\d+.\d+', product_price)[0]
+    
     item_id = re.findall(r'\d+', div.get("id").strip())[0]
     div_parent = div.find_parent()
     span = div_parent.find_next_sibling("span")
@@ -47,32 +48,31 @@ def retrive_product_info(div, sauce, cat):
     sub_a = span.find("a")
     product_name = sub_a.string.strip()
     product_link = sub_a.get('href')
-
-    img_tag = sauce.find("img", src = lambda value: "imageId="+item_id in value)
-    if img_tag.get("src"):
-        image_link = img_tag.get("src")
+    cat = sauce.find("script", string=lambda val: val is not None and "categoryName" in val).text.strip()
+    cat = re.findall(r"categoryName\: '(\w+.*)'", cat)[0]
+    image_tag = sauce.find("img", alt=lambda val: val is not None and product_name in val)
+    if image_tag and image_tag.get("src"):
+        image_link = image_tag.get("src")
     else:
-        image_link = img_tag.get("data-src")
+        image_link = image_tag.get("data-src")
     obj = CostcoItem(item_id, product_name, product_price, price_range, is_on_sale, product_link, image_link, cat)
+
     print(obj)
 
 def get_costco_product(url):
     print("#"*10, url, "#"*10)
-    category = url.split("https://www.costco.ca/")[1].replace(".html", "")
     driver = get_driver()
     has_next_page = True
     page = 1
     driver.get(url)
 
     sauce = BeautifulSoup(driver.page_source, "lxml")
-    price_divs = sauce.find_all("div", {"class": "price"})
-    if not price_divs:
-        print("errors")
-        assert False
-        return
-    for pd in price_divs:
-        retrive_product_info(pd, sauce, category)
-        break
+    product_div_parent = sauce.find("div", attrs={"automation-id":"productList"})
+    # print(sauce)
+    product_div_list = product_div_parent.find_all("div", class_= lambda val: val is not None and "product" in val and "col-xs" in val)
+    for pd in product_div_list:
+        price_div = pd.find("div", id=lambda val: val is not None and "price" in val)
+        retrive_product_info(price_div, pd)
     has_next_page = sauce.find("li", class_="forward") != None
     page = page+1 if has_next_page else page
     assert True
@@ -96,7 +96,7 @@ def test_dynamo_update():
 def test_mysql_insert():
     # item_id, name, price, price_range, is_on_sale, product_link, image_link, category
     product_id = "test_insert1"
-    obj1 = MySQLCostcoItem(product_id, "test", "8.99", None, True, ".com", "image.com", "test_category")
+    obj1 = MySQLCostcoItem(product_id, "test", "8.99", "-1", True, ".com", "image.com", "test_category")
     try:
         obj1.update_item()
         item = search_mysql_item(product_id)
@@ -116,12 +116,12 @@ def test_mysql_insert():
 def test_mysql_update():
     # item_id, name, price, price_range, is_on_sale, product_link, image_link, category
     product_id = "1"
-    obj1 = MySQLCostcoItem(product_id, "test", "8.99", None, True, ".com", "image.com", "test_category")
+    obj1 = MySQLCostcoItem(product_id, "test", "8.99", "-1", True, ".com", "image.com", "test_category")
     try:
         obj1.update_item()
         item = search_mysql_item(product_id)
         if float(item[6]) == float("8.99"):
-            obj1 = MySQLCostcoItem(product_id, "test", "9.99", None, True, ".com", "image.com", "test_category")
+            obj1 = MySQLCostcoItem(product_id, "test", "9.99", "-1", True, ".com", "image.com", "test_category")
             obj1.update_item()
             assert float(search_mysql_item(product_id)[6]) == float("9.99")
         else:
@@ -130,5 +130,5 @@ def test_mysql_update():
         assert False
 
 def test_selenium_retrieve():
-    url = "https://www.costco.ca/boxing-mma.html"
+    url = "https://www.costco.ca/mens-clothing.html"
     get_costco_product(url)
