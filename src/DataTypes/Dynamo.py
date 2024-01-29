@@ -4,10 +4,21 @@ from .BussImpl import CostcoItem
 class DynamoCostcoItem(CostcoItem):
     
     client = boto3.client('dynamodb')
-    costco_db_table_name = "costco-products-info"
+    costco_db_table_name = "costco-products-beta"
 
     def __init__(self, item_id, name, price, price_range, is_on_sale, product_link, image_link, category):
         super().__init__(item_id, name, price, price_range, is_on_sale, product_link, image_link, category)
+
+    def delete_item(self):
+        response = DynamoCostcoItem.client.delete_item(
+            Key={
+                'product_id': {
+                    'S': self.id,
+                }
+            },
+            TableName=DynamoCostcoItem.costco_db_table_name,
+        )
+        return response
 
     def update_item(self):
         try:
@@ -24,7 +35,7 @@ class DynamoCostcoItem(CostcoItem):
             # Product update minimum price
             Key={'product_id': {'S':self.id}}
             UpdateExpression = "SET #min = :price"
-            ConditionExpression ="attribute_not_exists(#min) OR #min < :price"
+            ConditionExpression ="attribute_not_exists(#min) OR #min > :price"
             ReturnValues = "NONE"
             print("Dynamo Updating Minimum price", self.name)
             DynamoCostcoItem.client.update_item(
@@ -77,13 +88,14 @@ class DynamoCostcoItem(CostcoItem):
             Key={'product_id': {'S':self.id}}
             ReturnValues = "NONE"
             UpdateExpression = "SET #price = :price, #link = :link, #name = :name, #imageLink = :imageLink, #onSale = :onSale, #priceRange = :priceRange, #category = :category"
-            ConditionExpression ="attribute_not_exists(#link) OR #link <> :link"
+            ConditionExpression = "attribute_not_exists(#link) OR #link <> :link"
             ConditionExpression += " OR attribute_not_exists(#price) OR #price <> :price"
             ConditionExpression += " OR attribute_not_exists(#imageLink) OR #imageLink <> :imageLink"
             ConditionExpression += " OR attribute_not_exists(#onSale) OR #onSale <> :onSale"
             ConditionExpression += " OR attribute_not_exists(#name) OR #name <> :name"
             ConditionExpression += " OR attribute_not_exists(#priceRange) OR #priceRange <> :priceRange"
             ConditionExpression += " OR attribute_not_exists(#category) OR #category <> :category"
+            print(ConditionExpression)
             print("Dynamo Updating other information", self.name)
             DynamoCostcoItem.client.update_item(
                 ExpressionAttributeNames=ExpressionAttributeNames,

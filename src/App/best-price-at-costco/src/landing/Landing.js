@@ -1,31 +1,62 @@
-import Banner from "./Banner";
 import FeatureProduct from "./FeatureProduct";
 import ScrollToTopOnMount from "../template/ScrollToTopOnMount";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Link } from "react-router-dom";
+import React, { useState, useEffect } from 'react';
 
-function Landing() {
+function Landing(props) {
+	const [featureProducts, setFeatureProducts] = useState([]);
+
+	function get_random_feature_products() {
+		fetch('/api/on_sale/random',{
+	    headers:{
+	        "accepts":"application/json"
+	    }
+		})
+		.then(res => {
+		    return res.json();
+		})
+		.then(json => {
+			console.log(json);
+			setFeatureProducts(json);
+		})
+		.catch( a => { console.log(a) })
+	}
+
+	useEffect(()=>{
+    get_random_feature_products();
+  }, [])
+
   return (
     <>
       <ScrollToTopOnMount />
-      <Banner />
+      {/* <Banner /> */}
       <div className="d-flex flex-column bg-white py-4">
         <p className="text-center px-5">
           Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
           eiusmod tempor incididunt ut labore et dolore magna aliqua.
         </p>
         <div className="d-flex justify-content-center">
-          <Link to="/products" className="btn btn-primary" replace>
+          <Link 
+	          style={{marginRight: "10px"}}
+	          to="/products" className="btn btn-primary" replace>
             Browse products
           </Link>
+          <button onClick={(e) => get_random_feature_products()} className="btn btn-primary" replace>
+            Refresh Feature Products
+          </button>
         </div>
       </div>
-      <h2 className="text-muted text-center mt-4 mb-3">New Arrival</h2>
-      <div className="container pb-5 px-lg-5">
+      <h2 className="text-muted text-center mt-4 mb-3">Current On Sale items</h2>
+      <div className="container pb-6 px-lg-5">
         <div className="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 px-md-5">
-          {Array.from({ length: 6 }, (_, i) => {
-            return <FeatureProduct key={i} />;
+        	{featureProducts.map((v, i) => {
+            return <FeatureProduct product={v} key={i}/>;
           })}
+
+          {/* {Array.from({ length: 6 }, (_, i) => { */}
+          {/*   return <FeatureProduct product={i} />; */}
+          {/* })} */}
         </div>
       </div>
       <div className="d-flex flex-column bg-white py-4">

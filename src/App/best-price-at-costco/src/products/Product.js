@@ -1,50 +1,43 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from "react-router-dom";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import axios from "axios";
+import React from 'react';
 
 function Product(props) {
-	const [product, setProduct] = useState(0);
-  let percentOff;
 
-  useEffect(()=>{
-  	fetch('/api/product_id/1000092',{
-	    headers:{
-	        "accepts":"application/json"
-	    }
-		})
-		.then(res => {
-		    console.log(res);
-		    return res.json();
-		})
-		.then(json => {
-			console.log(json);
-			setProduct(json);
-		})
-		.catch( a => { console.log(a) });
-  }, [])
+	const openInNewTab = (url: string): void => {
+	  	const newWindow = window.open(url, '_blank', 'noopener,noreferrer')
+	  	if (newWindow) newWindow.opener = null
+	}
+
+	const onClickUrl = (url: string): (() => void) => () => openInNewTab(url)
 
   return (
     <div className="col">
       <div className="card shadow-sm">
-        <Link to="/products/1000092" href="!#" replace>
-          {product.product_name}
+        <div onClick={onClickUrl(props.product.product_link)} replace>
           <img
             className="card-img-top bg-dark cover"
-            height="200"
             alt=""
-            src={product.product_image_link}
+            src={props.product.product_image_link}
           />
-        </Link>
+        </div>
         <div className="card-body">
-          <h5 className="card-title text-center text-dark text-truncate">
-            {product.product_name}
-          </h5>
-          <p className="card-text text-center text-muted mb-0">{product.product_current_price}</p>
-          <div className="d-grid d-block">
-            <button className="btn btn-outline-dark mt-3">
-              <FontAwesomeIcon icon={["fas", "cart-plus"]} /> Add to cart
-            </button>
+          <h6 className="card-title text-center text-dark text-truncate">
+            {props.product.product_name}
+          </h6>
+          <div>
+          	<p className="text-center">Current Price ${props.product.product_current_price}</p>
+    				<p className="text-center">History Minimum Price ${props.product.product_history_minimum_price}</p>
+          </div>
+          <div className="mt-auto text-center">
+            <div className="d-grid gap-2">
+	          	<span className="text-center text-muted">
+	          		<button style={{marginRight: "10px"}} onClick={onClickUrl(props.product.product_link)} className="btn btn-outline-dark" replace>
+	              	Detail
+	            	</button>
+		            <button className="btn btn-outline-dark" replace>
+		              Interested
+		            </button>
+          		</span>
+	          </div>
           </div>
         </div>
       </div>

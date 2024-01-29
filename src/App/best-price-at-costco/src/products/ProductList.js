@@ -1,50 +1,82 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from "react-router-dom";
 import Product from "./Product";
 import ProductH from "./ProductH";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import ScrollToTopOnMount from "../template/ScrollToTopOnMount";
-import axios from "axios";
+// 
+// const brands = ["Apple", "Samsung", "Google", "HTC"];
+// 
+// const manufacturers = ["HOCO", "Nillkin", "Remax", "Baseus"];
 
-const brands = ["Apple", "Samsung", "Google", "HTC"];
+function ProductList() {
 
-const manufacturers = ["HOCO", "Nillkin", "Remax", "Baseus"];
-
-function ProductList(props) {
   const [viewType, setViewType] = useState({ grid: true });
-  const [onSaleProduct, setonSaleProduct] = useState(0);
+  const [onSaleProducts, setOnSaleProducts] = useState([]);
   const [product, setProduct] = useState(0);
   const [categories, setCategories] = useState([]);
-  
+  const [viewCategory, setViewCategory] = useState("View All");
+  const [currentPage, setCurrentPage] = useState(1);
+
+  let productRef = useRef([]);
+
   useEffect(()=>{
-    fetch('/api/on_sale/categories',{
-	    headers:{
-	        "accepts":"application/json"
-	    }
+		fetch('/api/on_sale/categories',{
+			headers:{
+				"accepts":"application/json"
+			}
 		})
 		.then(res => {
-		    return res.json();
+			return res.json();
 		})
 		.then(json => {
+			json.unshift("View All");
 			setCategories(json);
 		})
 		.catch( a => { console.log(a) });
   }, [])
 
   useEffect(()=>{
-  	fetch('/api/product_id/1000092',{
-	    headers:{
-	        "accepts":"application/json"
-	    }
-		})
-		.then(res => {
-		    return res.json();
-		})
-		.then(json => {
-			setProduct(json);
-		})
-		.catch( a => { console.log(a) });
-  }, [])
+  	if (!productRef.current.length) {
+	  	fetch('/api/on_sale/all',{
+				headers:{
+						"accepts":"application/json"
+				}
+			})
+			.then(res => {
+				return res.json();
+			})
+			.then(json => {
+				productRef.current = json;
+				setOnSaleProducts(productRef.current);
+			})
+			.catch( a => { console.log(a) });
+		} else if (viewCategory === "View All") {
+			setOnSaleProducts(productRef.current);
+		} else {
+			setOnSaleProducts(productRef.current.filter(product => 
+				product.product_category == viewCategory)
+			);	
+		}
+	}, [viewCategory])
+
+  const usePagination = (items, perPage = 9) => {
+  	const [activePage, setActivePage] = useState(1)
+  	const totalPages = Math.ceil(items.length / perPage)
+  	const offset = perPage * (activePage - 1)
+    const paginatedItems = items.slice(offset, perPage * activePage)
+    return {
+      activePage,
+      nextPage: ()=> {setActivePage(p => p < totalPages ? p + 1 : p); window.scrollTo(0, 0);},
+      previousPage: ()=> {setActivePage(p => p > 1 ? p - 1 : p); window.scrollTo(0, 0);},
+      totalPages,
+      totalItems: items.length,
+      items: paginatedItems,
+      setActivePage
+    }
+  }
+
+  const { activePage, nextPage, previousPage, totalPages, totalItems, items, setActivePage } = usePagination(onSaleProducts);
 
   function changeViewType() {
     setViewType({
@@ -77,13 +109,7 @@ function ProductList(props) {
           {categories.map((v, i) => {
             return (
               <div key={i} className="h-link me-2">
-                <Link
-                  to="/products"
-                  className="btn btn-sm btn-outline-dark rounded-pill"
-                  replace
-                >
-                  {v}
-                </Link>
+              	<button onClick={(e) => setViewCategory(v)} className="btn btn-sm btn-outline-dark rounded-pill">{v}</button>
               </div>
             );
           })}
@@ -113,7 +139,7 @@ function ProductList(props) {
               data-bs-parent="#accordionFilter"
             >
               <div className="accordion-body p-0">
-                <FilterMenuLeft categories={categories}/>
+                <FilterMenuLeft categories={categories} onViewCategoryChange={setViewCategory} />
               </div>
             </div>
           </div>
@@ -123,7 +149,7 @@ function ProductList(props) {
       <div className="row mb-4 mt-lg-3">
         <div className="d-none d-lg-block col-lg-3">
           <div className="border rounded shadow-sm">
-            <FilterMenuLeft categories={categories}/>
+            <FilterMenuLeft categories={categories} onViewCategoryChange={setViewCategory} />
           </div>
         </div>
         <div className="col-lg-9">
@@ -169,45 +195,46 @@ function ProductList(props) {
                 (viewType.grid ? "row-cols-xl-3" : "row-cols-xl-2")
               }
             >
-              {Array.from({ length: 10 }, (_, i) => {
-                if (viewType.grid) {
-                  return (
-                    <Product key={i} percentOff={i % 2 === 0 ? 15 : null} />
-                  );
-                }
+            {items.map((v, i) => {
+	            if (viewType.grid) {
                 return (
-                  <ProductH key={i} percentOff={i % 4 === 0 ? 15 : null} />
-                );
-              })}
+                  <Product key={i} product={v} percentOff={i % 2 === 0 ? 15 : null} />
+	                );
+	              }
+	              return (
+	                <ProductH key={i} product={v} percentOff={i % 4 === 0 ? 15 : null} />
+	              );
+	          })}
             </div>
             <div className="d-flex align-items-center mt-auto">
               <span className="text-muted small d-none d-md-inline">
-                Showing 10 of 100
+                Showing {activePage === totalPages ? totalItems : items.length*activePage} of {totalItems}
               </span>
               <nav aria-label="Page navigation example" className="ms-auto">
                 <ul className="pagination my-0">
                   <li className="page-item">
-                    <a className="page-link" href="!#">
+                    <a className="page-link" onClick={previousPage} disabled={activePage <= 1}>
                       Previous
                     </a>
                   </li>
-                  <li className="page-item">
-                    <a className="page-link" href="!#">
-                      1
-                    </a>
+                  <li className="">
+                    <div className="form-floating">
+					            <input
+					            	style={{width: "70px"}}
+					              type="text"
+					              className="form-control"
+					              type="number"
+					              min="1"
+					              max={totalPages}
+					              // defaultValue=
+					              placeholder={activePage}
+					              // onChange={e => setActivePage(e.target.value)}
+					            />
+					            <label htmlFor="floatingInput">Go To</label>
+					          </div>
                   </li>
-                  <li className="page-item active">
-                    <a className="page-link" href="!#">
-                      2
-                    </a>
-                  </li>
                   <li className="page-item">
-                    <a className="page-link" href="!#">
-                      3
-                    </a>
-                  </li>
-                  <li className="page-item">
-                    <a className="page-link" href="!#">
+                    <a className="page-link" onClick={nextPage} disabled={activePage >= totalPages}>
                       Next
                     </a>
                   </li>
@@ -221,7 +248,8 @@ function ProductList(props) {
   );
 }
 
-function FilterMenuLeft({categories}) {
+function FilterMenuLeft({categories, onViewCategoryChange}) {
+
   return (
     <ul className="list-group list-group-flush rounded">
       <li className="list-group-item d-none d-lg-block">
@@ -229,44 +257,14 @@ function FilterMenuLeft({categories}) {
         <div className="d-flex flex-wrap my-2">
           {categories.map((v, i) => {
             return (
-              <Link
+              <button
+              	style = {{cursor: 'pointer'}}
+              	onClick={(e) => onViewCategoryChange(v)}
                 key={i}
-                to="/products"
                 className="btn btn-sm btn-outline-dark rounded-pill me-2 mb-2"
-                replace
-              >
+                >
                 {v}
-              </Link>
-            );
-          })}
-        </div>
-      </li>
-      <li className="list-group-item">
-        <h5 className="mt-1 mb-1">Brands</h5>
-        <div className="d-flex flex-column">
-          {brands.map((v, i) => {
-            return (
-              <div key={i} className="form-check">
-                <input className="form-check-input" type="checkbox" />
-                <label className="form-check-label" htmlFor="flexCheckDefault">
-                  {v}
-                </label>
-              </div>
-            );
-          })}
-        </div>
-      </li>
-      <li className="list-group-item">
-        <h5 className="mt-1 mb-1">Manufacturers</h5>
-        <div className="d-flex flex-column">
-          {manufacturers.map((v, i) => {
-            return (
-              <div key={i} className="form-check">
-                <input className="form-check-input" type="checkbox" />
-                <label className="form-check-label" htmlFor="flexCheckDefault">
-                  {v}
-                </label>
-              </div>
+              </button>
             );
           })}
         </div>
@@ -298,6 +296,5 @@ function FilterMenuLeft({categories}) {
     </ul>
   );
 }
-
 
 export default ProductList;

@@ -16,7 +16,6 @@ import re
 import boto3
 
 costco_domain = "https://www.costco.ca"
-costco_db_table_name = "costco-products-info"
 
 def get_shop_by_category_links(link):
 
@@ -127,6 +126,7 @@ def get_costco_product(url):
         except:
             print("Done")
             break
+        time.sleep(5)
 
 if __name__ == '__main__':
     # get_url_from_site_map()

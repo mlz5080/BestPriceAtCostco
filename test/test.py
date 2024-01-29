@@ -11,6 +11,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import pytest
 
 threadLocal = threading.local()
 
@@ -59,6 +60,7 @@ def retrive_product_info(div, sauce):
 
     print(obj)
 
+
 def get_costco_product(url):
     print("#"*10, url, "#"*10)
     driver = get_driver()
@@ -85,13 +87,19 @@ def search_mysql_item(product_id):
         database=MySQLCostcoItem.db_name,
     )
     cursor = db.cursor()
-    query = "SELECT * FROM costcoonlineproducts where product_id = '{}'".format(product_id)
+    query = "SELECT * FROM costcoonlineproducts_beta where product_id = '{}'".format(product_id)
     cursor.execute(query)
     cfg = cursor.fetchone()
     return cfg
 
+@pytest.mark.dynamo
 def test_dynamo_update():
-    assert True
+    product_id = "test_insert1"
+    obj1 = DynamoCostcoItem(product_id, "test", "8.99", "-1", True, ".com", "image.com", "test_category")
+    obj1.update_item()
+    resp = obj1.delete_item()
+    assert resp["ResponseMetadata"]['HTTPStatusCode'] == 200
+
 
 def test_mysql_insert():
     # item_id, name, price, price_range, is_on_sale, product_link, image_link, category
@@ -116,19 +124,21 @@ def test_mysql_insert():
 def test_mysql_update():
     # item_id, name, price, price_range, is_on_sale, product_link, image_link, category
     product_id = "1"
-    obj1 = MySQLCostcoItem(product_id, "test", "8.99", "-1", True, ".com", "image.com", "test_category")
+    obj1 = MySQLCostcoItem(product_id, "test", "9.99", "-1", True, ".com", "image.com", "test_category")
     try:
         obj1.update_item()
         item = search_mysql_item(product_id)
-        if float(item[6]) == float("8.99"):
-            obj1 = MySQLCostcoItem(product_id, "test", "9.99", "-1", True, ".com", "image.com", "test_category")
+        if float(item[6]) == float("9.99"):
+            obj1 = MySQLCostcoItem(product_id, "test", "8.99", "-1", True, ".com", "image.com", "test_category")
             obj1.update_item()
-            assert float(search_mysql_item(product_id)[6]) == float("9.99")
+            assert float(search_mysql_item(product_id)[5]) == float("8.99")
+            obj1.remove_item()
         else:
             assert False
     except:
         assert False
 
+@pytest.mark.slow
 def test_selenium_retrieve():
     url = "https://www.costco.ca/mens-clothing.html"
     get_costco_product(url)

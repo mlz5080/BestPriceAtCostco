@@ -3,37 +3,18 @@ import { Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 function ProductH(props) {
-  const price = 10000;
-  let percentOff;
-  let offPrice = `${price}Ks`;
-
-  if (props.percentOff && props.percentOff > 0) {
-    percentOff = (
-      <div
-        className="badge bg-dim py-2 text-white position-absolute"
-        style={{ top: "0.5rem", left: "0.5rem" }}
-      >
-        {props.percentOff}% OFF
-      </div>
-    );
-
-    offPrice = (
-      <>
-        <del>{price}Ks</del> {price - (props.percentOff * price) / 100}Ks
-      </>
-    );
-  }
+ 
   return (
     <div className="col">
       <div className="card shadow-sm">
         <div className="row g-0">
           <div className="col-4">
             <Link to="/products/1" href="!#" replace>
-              {percentOff}
+              {/* {percentOff} */}
               <img
                 className="rounded-start bg-dark cover w-100 h-100"
                 alt=""
-                src={Image}
+                src={props.product.product_image_link}
               />
             </Link>
           </div>
@@ -41,15 +22,23 @@ function ProductH(props) {
             <div className="card-body h-100">
               <div className="d-flex flex-column h-100">
                 <h5 className="card-title text-dark text-truncate mb-1">
-                  Nillkin iPhone X cover
+                  {props.product.product_name}
                 </h5>
-                <span className="card-text text-muted mb-2 flex-shrink-0">
-                  {offPrice}
-                </span>
+                <div>
+                	<p className="text-center">Current Price ${props.product.product_current_price}</p>
+          				<p className="text-center">History Minimum Price ${props.product.product_history_minimum_price}</p>
+                </div>
                 <div className="mt-auto d-flex">
-                  <button className="btn btn-outline-dark ms-auto">
-                    <FontAwesomeIcon icon={["fas", "cart-plus"]} /> Add to cart
-                  </button>
+                  <div className="d-grid gap-2">
+				          	<span className="text-center text-muted small d-none d-md-inline">
+				          		<a onClick={onClickUrl(props.product.product_link)} className="btn btn-outline-dark" replace>
+				              Detail
+				            </a>
+				            <a className="btn btn-outline-dark" replace>
+				              Interested
+				            </a>
+				          	</span>
+				          </div>
                 </div>
               </div>
             </div>
@@ -61,3 +50,9 @@ function ProductH(props) {
 }
 
 export default ProductH;
+export const openInNewTab = (url: string): void => {
+	  const newWindow = window.open(url, '_blank', 'noopener,noreferrer')
+	  if (newWindow) newWindow.opener = null
+}
+
+export const onClickUrl = (url: string): (() => void) => () => openInNewTab(url)

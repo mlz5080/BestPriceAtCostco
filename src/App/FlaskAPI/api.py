@@ -13,7 +13,7 @@ app = Flask(__name__)
 CORS(app) #comment this on deployment
 
 db_name = "bestpriceatcostco"
-costco_db_table_name = "costcoonlineproducts"
+costco_db_table_name = "costcoonlineproducts_beta"
 
 mysql = MySQL(app, host='localhost', user=os.environ['MYSQL_USER'],password=os.environ['MYSQL_PW'],db=db_name, autocommit=True)
 
@@ -27,14 +27,24 @@ def get_single_item(product_id):
     obj = DisplayItem(*item)
     return json.dumps(obj.obj_dict())
 
-@app.route('/api/on_sale')
+@app.route('/api/on_sale/random')
+def get_random_on_sales():
+    mysql_dao = MySQLUtils(mysql, costco_db_table_name)
+    cfgs = mysql_dao.get_costco_online_random_on_sale()
+    res = {}
+    if cfgs:
+        items = [DisplayItem(*[str(c) for c in cfg]).obj_dict() for cfg in cfgs]
+        res = json.dumps(items)
+    return res
+
+@app.route('/api/on_sale/all')
 def get_all_on_sales():
     mysql_dao = MySQLUtils(mysql, costco_db_table_name)
     cfgs = mysql_dao.get_costco_online_on_sale()
     res = {}
     if cfgs:
-        items = [DisplayItem(*[str(c) for c in cfg]) for cfg in cfgs]
-        res = json.dumps({cfg.product_id: cfg.obj_dict() for cfg in cfgs})
+        items = [DisplayItem(*[str(c) for c in cfg]).obj_dict() for cfg in cfgs]
+        res = json.dumps(items)
     return res
 
 @app.route('/api/on_sale/categories')
