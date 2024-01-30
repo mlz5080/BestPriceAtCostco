@@ -17,7 +17,6 @@ function Landing(props) {
 		    return res.json();
 		})
 		.then(json => {
-			console.log(json);
 			setFeatureProducts(json);
 		})
 		.catch( a => { console.log(a) })
@@ -33,16 +32,18 @@ function Landing(props) {
       {/* <Banner /> */}
       <div className="d-flex flex-column bg-white py-4">
         <p className="text-center px-5">
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-          eiusmod tempor incididunt ut labore et dolore magna aliqua.
+        	<br />
+        	<br />
+          {/* Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do */}
+          {/* eiusmod tempor incididunt ut labore et dolore magna aliqua. */}
         </p>
         <div className="d-flex justify-content-center">
           <Link 
 	          style={{marginRight: "10px"}}
-	          to="/products" className="btn btn-primary" replace>
+	          to="/products" className="btn btn-primary">
             Browse products
           </Link>
-          <button onClick={(e) => get_random_feature_products()} className="btn btn-primary" replace>
+          <button onClick={(e) => get_random_feature_products()} className="btn btn-primary" >
             Refresh Feature Products
           </button>
         </div>
@@ -60,17 +61,20 @@ function Landing(props) {
         </div>
       </div>
       <div className="d-flex flex-column bg-white py-4">
-        <h5 className="text-center mb-3">Follow us on</h5>
+        <h5 className="text-center mb-3">Follow me on</h5>
         <div className="d-flex justify-content-center">
-          <a href="!#" className="me-3">
-            <FontAwesomeIcon icon={["fab", "facebook"]} size="2x" />
+          <a href="https://www.linkedin.com/in/ling-zhi-mo/" className="me-3">
+            <FontAwesomeIcon icon={["fab", "linkedin"]} size="2x" />
           </a>
-          <a href="!#">
-            <FontAwesomeIcon icon={["fab", "instagram"]} size="2x" />
+          <a href="https://github.com/mlz5080" className="me-3">
+            <FontAwesomeIcon icon={["fab", "github"]} size="2x" />
           </a>
-          <a href="!#" className="ms-3">
-            <FontAwesomeIcon icon={["fab", "twitter"]} size="2x" />
-          </a>
+          {/* <a href="!#"> */}
+          {/*   <FontAwesomeIcon icon={["fab", "instagram"]} size="2x" /> */}
+          {/* </a> */}
+          {/* <a href="!#" className="ms-3"> */}
+          {/*   <FontAwesomeIcon icon={["fab", "twitter"]} size="2x" /> */}
+          {/* </a> */}
         </div>
       </div>
     </>

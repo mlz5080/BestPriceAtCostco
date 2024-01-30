@@ -4,8 +4,8 @@ import mysql.connector
 import boto3
 import os
 import json
-from ...DataTypes.BussImpl import DisplayItem
-from ...Utils.MySQLUtils import MySQLUtils
+from DataTypes.BussImpl import DisplayItem
+from Utils.MySQLUtils import MySQLUtils
 from flask_cors import CORS #comment this on deployment
 from flaskext.mysql import MySQL
 

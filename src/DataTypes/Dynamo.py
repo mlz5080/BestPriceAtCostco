@@ -95,7 +95,6 @@ class DynamoCostcoItem(CostcoItem):
             ConditionExpression += " OR attribute_not_exists(#name) OR #name <> :name"
             ConditionExpression += " OR attribute_not_exists(#priceRange) OR #priceRange <> :priceRange"
             ConditionExpression += " OR attribute_not_exists(#category) OR #category <> :category"
-            print(ConditionExpression)
             print("Dynamo Updating other information", self.name)
             DynamoCostcoItem.client.update_item(
                 ExpressionAttributeNames=ExpressionAttributeNames,

@@ -4,16 +4,11 @@ import Product from "./Product";
 import ProductH from "./ProductH";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import ScrollToTopOnMount from "../template/ScrollToTopOnMount";
-// 
-// const brands = ["Apple", "Samsung", "Google", "HTC"];
-// 
-// const manufacturers = ["HOCO", "Nillkin", "Remax", "Baseus"];
 
 function ProductList() {
 
   const [viewType, setViewType] = useState({ grid: true });
   const [onSaleProducts, setOnSaleProducts] = useState([]);
-  const [product, setProduct] = useState(0);
   const [categories, setCategories] = useState([]);
   const [viewCategory, setViewCategory] = useState("View All");
   const [currentPage, setCurrentPage] = useState(1);
@@ -60,23 +55,25 @@ function ProductList() {
 		}
 	}, [viewCategory])
 
-  const usePagination = (items, perPage = 9) => {
-  	const [activePage, setActivePage] = useState(1)
+  const usePagination = (items, setCurrentPage, page = 1, perPage = 9, ) => {
+  	const [activePage, setActivePage] = useState(page)
   	const totalPages = Math.ceil(items.length / perPage)
   	const offset = perPage * (activePage - 1)
     const paginatedItems = items.slice(offset, perPage * activePage)
+    if (page !== activePage) {
+    	setActivePage(page);
+    }
     return {
       activePage,
-      nextPage: ()=> {setActivePage(p => p < totalPages ? p + 1 : p); window.scrollTo(0, 0);},
-      previousPage: ()=> {setActivePage(p => p > 1 ? p - 1 : p); window.scrollTo(0, 0);},
+      nextPage: ()=> {setActivePage(p => p < totalPages ? p + 1 : p); window.scrollTo(0, 0); setCurrentPage(p => p < totalPages ? p + 1 : p)},
+      previousPage: ()=> {setActivePage(p => p > 1 ? p - 1 : p); window.scrollTo(0, 0); setCurrentPage(p => p > 1 ? p - 1 : p)},
       totalPages,
       totalItems: items.length,
-      items: paginatedItems,
-      setActivePage
+      items: paginatedItems
     }
   }
 
-  const { activePage, nextPage, previousPage, totalPages, totalItems, items, setActivePage } = usePagination(onSaleProducts);
+  const { activePage, nextPage, previousPage, totalPages, totalItems, items } = usePagination(onSaleProducts, setCurrentPage, currentPage);
 
   function changeViewType() {
     setViewType({
@@ -109,7 +106,7 @@ function ProductList() {
           {categories.map((v, i) => {
             return (
               <div key={i} className="h-link me-2">
-              	<button onClick={(e) => setViewCategory(v)} className="btn btn-sm btn-outline-dark rounded-pill">{v}</button>
+              	<button onClick={(e) => {setViewCategory(v); setCurrentPage(1); console.log(currentPage)}} className="btn btn-sm btn-outline-dark rounded-pill">{v}</button>
               </div>
             );
           })}
@@ -139,7 +136,7 @@ function ProductList() {
               data-bs-parent="#accordionFilter"
             >
               <div className="accordion-body p-0">
-                <FilterMenuLeft categories={categories} onViewCategoryChange={setViewCategory} />
+                <FilterMenuLeft categories={categories} onViewCategoryChange={setViewCategory} resetCurrentPage={setCurrentPage} />
               </div>
             </div>
           </div>
@@ -149,27 +146,28 @@ function ProductList() {
       <div className="row mb-4 mt-lg-3">
         <div className="d-none d-lg-block col-lg-3">
           <div className="border rounded shadow-sm">
-            <FilterMenuLeft categories={categories} onViewCategoryChange={setViewCategory} />
+            <FilterMenuLeft categories={categories} onViewCategoryChange={setViewCategory} resetCurrentPage={setCurrentPage} />
           </div>
         </div>
         <div className="col-lg-9">
           <div className="d-flex flex-column h-100">
             <div className="row mb-3">
               <div className="col-lg-3 d-none d-lg-block">
-                <select
-                  className="form-select"
-                  aria-label="Default select example"
-                  defaultValue=""
-                >
-                  <option value="">All Models</option>
-                  <option value="1">iPhone X</option>
-                  <option value="2">iPhone Xs</option>
-                  <option value="3">iPhone 11</option>
-                </select>
+                {/* <select */}
+                {/*   className="form-select" */}
+                {/*   aria-label="Default select example" */}
+                {/*   defaultValue="" */}
+                {/* > */}
+                {/*   <option value="">All Models</option> */}
+                {/*   <option value="1">iPhone X</option> */}
+                {/*   <option value="2">iPhone Xs</option> */}
+                {/*   <option value="3">iPhone 11</option> */}
+                {/* </select> */}
               </div>
               <div className="col-lg-9 col-xl-5 offset-xl-4 d-flex flex-row">
                 <div className="input-group">
                   <input
+                    id="filterProduct"
                     className="form-control"
                     type="text"
                     placeholder="Search products..."
@@ -208,7 +206,7 @@ function ProductList() {
             </div>
             <div className="d-flex align-items-center mt-auto">
               <span className="text-muted small d-none d-md-inline">
-                Showing {activePage === totalPages ? totalItems : items.length*activePage} of {totalItems}
+                Showing {activePage == totalPages ? totalItems : items.length*activePage} of {totalItems}
               </span>
               <nav aria-label="Page navigation example" className="ms-auto">
                 <ul className="pagination my-0">
@@ -220,17 +218,21 @@ function ProductList() {
                   <li className="">
                     <div className="form-floating">
 					            <input
+					              id="pageInput"
 					            	style={{width: "70px"}}
 					              type="text"
 					              className="form-control"
 					              type="number"
 					              min="1"
 					              max={totalPages}
-					              // defaultValue=
-					              placeholder={activePage}
-					              // onChange={e => setActivePage(e.target.value)}
+					              value={currentPage}
+					              onWheel={(e) => e.target.blur()}
+					              onChange={(e) => {
+											    setCurrentPage(e.target.value);
+				              		window.scrollTo(0, 0);
+					              }}
 					            />
-					            <label htmlFor="floatingInput">Go To</label>
+					            <label htmlFor="pageInput">Go To</label>
 					          </div>
                   </li>
                   <li className="page-item">
@@ -248,7 +250,7 @@ function ProductList() {
   );
 }
 
-function FilterMenuLeft({categories, onViewCategoryChange}) {
+function FilterMenuLeft({categories, onViewCategoryChange, resetCurrentPage}) {
 
   return (
     <ul className="list-group list-group-flush rounded">
@@ -259,7 +261,7 @@ function FilterMenuLeft({categories, onViewCategoryChange}) {
             return (
               <button
               	style = {{cursor: 'pointer'}}
-              	onClick={(e) => onViewCategoryChange(v)}
+              	onClick={(e) => {onViewCategoryChange(v); resetCurrentPage(1)}}
                 key={i}
                 className="btn btn-sm btn-outline-dark rounded-pill me-2 mb-2"
                 >
@@ -269,30 +271,30 @@ function FilterMenuLeft({categories, onViewCategoryChange}) {
           })}
         </div>
       </li>
-      <li className="list-group-item">
-        <h5 className="mt-1 mb-2">Price Range</h5>
-        <div className="d-grid d-block mb-3">
-          <div className="form-floating mb-2">
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Min"
-              defaultValue="100000"
-            />
-            <label htmlFor="floatingInput">Min Price</label>
-          </div>
-          <div className="form-floating mb-2">
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Max"
-              defaultValue="500000"
-            />
-            <label htmlFor="floatingInput">Max Price</label>
-          </div>
-          <button className="btn btn-dark">Apply</button>
-        </div>
-      </li>
+      {/* <li className="list-group-item"> */}
+      {/*   <h5 className="mt-1 mb-2">Price Range</h5> */}
+      {/*   <div className="d-grid d-block mb-3"> */}
+      {/*     <div className="form-floating mb-2"> */}
+      {/*       <input */}
+      {/*         type="text" */}
+      {/*         className="form-control" */}
+      {/*         placeholder="Min" */}
+      {/*         defaultValue="100000" */}
+      {/*       /> */}
+      {/*       <label htmlFor="floatingInput">Min Price</label> */}
+      {/*     </div> */}
+      {/*     <div className="form-floating mb-2"> */}
+      {/*       <input */}
+      {/*         type="text" */}
+      {/*         className="form-control" */}
+      {/*         placeholder="Max" */}
+      {/*         defaultValue="500000" */}
+      {/*       /> */}
+      {/*       <label htmlFor="floatingInput">Max Price</label> */}
+      {/*     </div> */}
+      {/*     <button className="btn btn-dark">Apply</button> */}
+      {/*   </div> */}
+      {/* </li> */}
     </ul>
   );
 }
