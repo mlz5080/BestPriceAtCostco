@@ -2,13 +2,31 @@ import mysql.connector
 import os
 from .BussImpl import CostcoItem
 
+
 class MySQLCostcoItem(CostcoItem):
-    
+
     db_name = "bestpriceatcostco"
     costco_db_table_name = "costcoonlineproducts_beta"
 
-    def __init__(self, item_id, name, price, price_range, is_on_sale, product_link, image_link, category):
-        super().__init__(item_id, name, price, price_range, is_on_sale, product_link, image_link, category)
+    def __init__(
+            self,
+            item_id,
+            name,
+            price,
+            price_range,
+            is_on_sale,
+            product_link,
+            image_link,
+            category):
+        super().__init__(
+            item_id,
+            name,
+            price,
+            price_range,
+            is_on_sale,
+            product_link,
+            image_link,
+            category)
         self.db = mysql.connector.connect(
             user=os.environ['MYSQL_USER'],
             password=os.environ['MYSQL_PW'],
@@ -21,7 +39,8 @@ class MySQLCostcoItem(CostcoItem):
     def remove_item(self):
         self.db.reconnect()
         cursor = self.db.cursor()
-        query = "DELETE FROM {} where product_id = '{}'".format(MySQLCostcoItem.costco_db_table_name, self.id)
+        query = "DELETE FROM {} where product_id = '{}'".format(
+            MySQLCostcoItem.costco_db_table_name, self.id)
         cursor.execute(query)
         self.db.commit()
         cursor.close()
@@ -30,7 +49,8 @@ class MySQLCostcoItem(CostcoItem):
     def update_item(self):
         self.db.reconnect()
         cursor = self.db.cursor()
-        query = "SELECT * FROM {} where product_id = '{}'".format(MySQLCostcoItem.costco_db_table_name, self.id)
+        query = "SELECT * FROM {} where product_id = '{}'".format(
+            MySQLCostcoItem.costco_db_table_name, self.id)
         cursor.execute(query)
         cfg = cursor.fetchone()
         cursor.close()
@@ -74,7 +94,8 @@ class MySQLCostcoItem(CostcoItem):
                 product_current_price,
                 product_current_price_range,
                 product_category)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""".format(self.costco_db_table_name),
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """.format(self.costco_db_table_name),
             (
                 self.id,
                 self.link,

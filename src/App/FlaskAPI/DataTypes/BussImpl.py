@@ -29,7 +29,7 @@ class DisplayItem:
                 self.product_current_price,
                 "is on sale" if self.product_is_on_sale else "not on sale",
                 self.product_link,
-                self.product_image_link,"\n"
+                self.product_image_link, "\n"
             ]
         )
 
