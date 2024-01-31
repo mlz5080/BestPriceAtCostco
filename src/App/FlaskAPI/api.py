@@ -65,7 +65,3 @@ def get_on_sales_categories():
         items = [str(cfg[0]) for cfg in cfgs]
         res = json.dumps(items)
     return res
-
-
-def convert_cfg_to_object(cfg):
-    pass
