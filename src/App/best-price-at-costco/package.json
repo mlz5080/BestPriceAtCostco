@@ -54,5 +54,5 @@
     "gh-pages": "^3.2.0",
     "@babel/plugin-proposal-private-property-in-object": ""
   },
-  "proxy": "http://127.0.0.1:5000"
+  "proxy": "http://142.198.226.38/:5000"
 }

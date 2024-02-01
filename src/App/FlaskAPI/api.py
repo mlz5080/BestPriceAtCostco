@@ -1,8 +1,8 @@
 from flask import Flask
 import os
 import json
-from DataTypes.BussImpl import DisplayItem
-from Utils.MySQLUtils import MySQLUtils
+from .DataTypes.BussImpl import DisplayItem
+from .Utils.MySQLUtils import MySQLUtils
 from flask_cors import CORS  # comment this on deployment
 from flaskext.mysql import MySQL
 
@@ -19,6 +19,11 @@ mysql = MySQL(
     password=os.environ['MYSQL_PW'],
     db=db_name,
     autocommit=True)
+
+
+@app.route('/')
+def index():
+    return {}
 
 
 @app.route('/api/product_id/<product_id>')
