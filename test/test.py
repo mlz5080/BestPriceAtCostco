@@ -1,13 +1,20 @@
-from src.DataTypes.Dynamo import DynamoCostcoItem
-from src.DataTypes.MySQL import MySQLCostcoItem
-from src.DataTypes.BussImpl import CostcoItem
 import mysql.connector
 import threading
 import os
+import sys
+
+TEST_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.abspath(os.path.join(TEST_DIR, os.pardir))
+sys.path.insert(0, PROJECT_DIR)
+
 import re
 from bs4 import BeautifulSoup
 from selenium import webdriver
 import pytest
+
+from src.DataTypes.Dynamo import DynamoCostcoItem
+from src.DataTypes.MySQL import MySQLCostcoItem
+from src.DataTypes.BussImpl import CostcoItem
 
 threadLocal = threading.local()
 
@@ -102,12 +109,12 @@ def get_costco_product(url):
     assert True
 
 
-def search_mysql_item(product_id):
+def search_mysql_item(product_id, user, pw, host, db_name):
     db = mysql.connector.connect(
-        user=os.environ['MYSQL_USER'],
-        password=os.environ['MYSQL_PW'],
-        host="localhost",
-        database=MySQLCostcoItem.db_name,
+        user=user,
+        password=pw,
+        host=host,
+        database=db_name,
     )
     cursor = db.cursor()
     query = "SELECT * FROM costcoonlineproducts_beta"
@@ -134,8 +141,19 @@ def test_dynamo_update():
     assert resp["ResponseMetadata"]['HTTPStatusCode'] == 200
 
 
-def test_mysql_insert():
+def test_mysql_insert(online):
     product_id = "test_insert1"
+    db_name = "bestpriceatcostco"
+    table_name = "costcoonlineproducts_beta"
+    if not online:
+        user = os.environ["MYSQL_USER"]
+        pw = os.environ["MYSQL_PW"]
+        host = "localhost"
+    else:
+        user = os.environ["MYSQL_EC2_USER"]
+        pw = os.environ["MYSQL_EC2_PW"]
+        host = os.environ["MYSQL_EC2_HOST"]
+
     obj1 = MySQLCostcoItem(
         product_id,
         "test",
@@ -144,21 +162,27 @@ def test_mysql_insert():
         True,
         ".com",
         "image.com",
-        "test_category")
+        "test_category",
+        db_name,
+        table_name,
+        user,
+        pw,
+        host)
     try:
         obj1.update_item()
-        item = search_mysql_item(product_id)
+        item = search_mysql_item(product_id, user, pw, host, db_name)
         if item:
             print(item)
         else:
             assert False
         obj1.remove_item()
-        item = search_mysql_item(product_id)
+        item = search_mysql_item(product_id, user, pw, host, db_name)
         if not item:
             assert True
         else:
             assert False
-    except BaseException:
+    except BaseException as e:
+        print(e)
         assert False
 
 

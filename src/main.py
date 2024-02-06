@@ -97,7 +97,11 @@ def retrive_product_info(div, sauce):
         image_link,
         cat)
     dynamo_dao.update_item()
-    mysql_dao = MySQLCostcoItem(
+
+    db_name = "bestpriceatcostco"
+    table_name = "costcoonlineproducts_beta"
+
+    mysql_dao_local = MySQLCostcoItem(
         item_id,
         product_name,
         product_price,
@@ -105,8 +109,29 @@ def retrive_product_info(div, sauce):
         is_on_sale,
         product_link,
         image_link,
-        cat)
-    mysql_dao.update_item()
+        cat,
+        db_name,
+        table_name,
+        os.environ["MYSQL_USER"],
+        os.environ["MYSQL_PW"],
+        "localhost")
+    mysql_dao_local.update_item()
+
+    mysql_dao_online = MySQLCostcoItem(
+        item_id,
+        product_name,
+        product_price,
+        price_range,
+        is_on_sale,
+        product_link,
+        image_link,
+        cat,
+        db_name,
+        table_name,
+        os.environ["MYSQL_EC2_USER"],
+        os.environ["MYSQL_EC2_PW"],
+        os.environ["MYSQL_EC2_HOST"])
+    mysql_dao_online.update_item()
 
 
 def get_costco_product(url):
@@ -148,4 +173,11 @@ def get_costco_product(url):
 if __name__ == '__main__':
     # get_url_from_site_map()
     # get_shop_by_category_links(domain)
-    Pool(os.cpu_count()).map(get_costco_product, get_url_from_site_map())
+    new_list = set(get_url_from_site_map())
+    with open("src/costco_all_sites.txt") as f:
+        old_set = set(eval(f.read()))
+    if new_list != old_set:
+        old_set = old_set.union(new_list)
+        with open("src/costco_all_sites_new.txt", "w") as f:
+            f.write(str(list(old_set)))
+    Pool(os.cpu_count()).map(get_costco_product, list(old_set))

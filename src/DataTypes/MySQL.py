@@ -5,8 +5,8 @@ from .BussImpl import CostcoItem
 
 class MySQLCostcoItem(CostcoItem):
 
-    db_name = "bestpriceatcostco"
-    costco_db_table_name = "costcoonlineproducts_beta"
+    # db_name = "bestpriceatcostco"
+    # costco_db_table_name = "costcoonlineproducts_beta"
 
     def __init__(
             self,
@@ -17,7 +17,12 @@ class MySQLCostcoItem(CostcoItem):
             is_on_sale,
             product_link,
             image_link,
-            category):
+            category,
+            db_name,
+            table_name,
+            user,
+            pw,
+            host):
         super().__init__(
             item_id,
             name,
@@ -27,11 +32,13 @@ class MySQLCostcoItem(CostcoItem):
             product_link,
             image_link,
             category)
+        self.costco_db_table_name = table_name
+        self.db_name = db_name
         self.db = mysql.connector.connect(
-            user=os.environ['MYSQL_USER'],
-            password=os.environ['MYSQL_PW'],
-            host="localhost",
-            database=MySQLCostcoItem.db_name,
+            user=user,
+            password=pw,
+            host=host,
+            database=self.db_name,
         )
         self.db.close()
         self.is_on_sale = '1' if self.is_on_sale else '0'
@@ -40,7 +47,7 @@ class MySQLCostcoItem(CostcoItem):
         self.db.reconnect()
         cursor = self.db.cursor()
         query = "DELETE FROM {} where product_id = '{}'".format(
-            MySQLCostcoItem.costco_db_table_name, self.id)
+            self.costco_db_table_name, self.id)
         cursor.execute(query)
         self.db.commit()
         cursor.close()
@@ -50,7 +57,7 @@ class MySQLCostcoItem(CostcoItem):
         self.db.reconnect()
         cursor = self.db.cursor()
         query = "SELECT * FROM {} where product_id = '{}'".format(
-            MySQLCostcoItem.costco_db_table_name, self.id)
+            self.costco_db_table_name, self.id)
         cursor.execute(query)
         cfg = cursor.fetchone()
         cursor.close()
