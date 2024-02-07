@@ -3,11 +3,11 @@ import os
 import json
 from .DataTypes.BussImpl import DisplayItem
 from .Utils.MySQLUtils import MySQLUtils
-from flask_cors import CORS  # comment this on deployment
+# from flask_cors import CORS  # comment this on deployment
 from flaskext.mysql import MySQL
 
 app = Flask(__name__)
-CORS(app)  # comment this on deployment
+# CORS(app)  # comment this on deployment
 
 db_name = "bestpriceatcostco"
 costco_db_table_name = "costcoonlineproducts_beta"
@@ -19,6 +19,11 @@ mysql = MySQL(
     password=os.environ['MYSQL_PW'],
     db=db_name,
     autocommit=True)
+
+
+@app.route('/test')
+def test():
+    return "test success"
 
 
 @app.route('/')
