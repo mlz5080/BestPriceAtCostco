@@ -2,3 +2,4 @@ __pycache__/
 .pytest_cache/
 receipt*
 *.env
+*package-lock.json
