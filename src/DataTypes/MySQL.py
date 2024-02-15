@@ -68,25 +68,18 @@ class MySQLCostcoItem(CostcoItem):
             self.insert_mysql_item(cursor)
         else:
             if self.need_update(cfg):
-                print("Updating other info", self.name)
                 self.update_mysql_basic_info(cursor)
-                print("Update complete for", self.name)
-            if cfg[5] > float(self.price):
-                print("Updating minimum price", self.name)
+            if float(cfg[5]) > float(self.price):
                 self.update_mysql_min_price(cursor)
-                print("Update min price complete for", self.name)
         self.db.commit()
         cursor.close()
         self.db.close()
 
     def need_update(self, cfg):
-        need_update = cfg[1] != self.link
-        need_update |= cfg[2] != self.is_on_sale
+        need_update = cfg[2] != int(self.is_on_sale)
         need_update |= cfg[3] != self.name
-        need_update |= cfg[4] != self.image_link
         need_update |= float(cfg[6]) != float(self.price)
         need_update |= float(cfg[7]) != float(self.price_range)
-        need_update |= cfg[8] != self.category
         return need_update
 
     def insert_mysql_item(self, cursor):

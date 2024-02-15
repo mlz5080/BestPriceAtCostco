@@ -72,7 +72,14 @@ def retrive_product_info(div, sauce):
         image_link = image_tag.get("src")
     else:
         image_link = image_tag.get("data-src")
-    obj = CostcoItem(
+
+    db_name = "bestpriceatcostco"
+    table_name = "costcoonlineproducts_beta"
+    user = os.environ["MYSQL_USER"]
+    pw = os.environ["MYSQL_PW"]
+    host = "localhost"
+
+    mysql_dao = MySQLCostcoItem(
         item_id,
         product_name,
         product_price,
@@ -80,9 +87,15 @@ def retrive_product_info(div, sauce):
         is_on_sale,
         product_link,
         image_link,
-        cat)
+        cat,
+        db_name,
+        table_name,
+        user,
+        pw,
+        host)
+    mysql_dao.update_item()
 
-    print(obj)
+    # print(dynamo_dao)
 
 
 def get_costco_product(url):
@@ -93,7 +106,6 @@ def get_costco_product(url):
     driver.get(url)
 
     sauce = BeautifulSoup(driver.page_source, "lxml")
-    print(sauce)
     product_div_parent = sauce.find(
         "div", attrs={"automation-id": "productList"})
     # print(sauce)
