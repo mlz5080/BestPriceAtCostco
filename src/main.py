@@ -1,8 +1,8 @@
 from selenium import webdriver
 import os
 from multiprocessing.pool import Pool
-from src.DataTypes.Dynamo import DynamoCostcoItem
-from src.DataTypes.MySQL import MySQLCostcoItem
+from DataTypes.Dynamo import DynamoCostcoItem
+from DataTypes.MySQL import MySQLCostcoItem
 from bs4 import BeautifulSoup
 import threading
 import time
@@ -153,7 +153,8 @@ def get_costco_product(url):
         for pd in product_div_list:
             price_div = pd.find(
                 "div", id=lambda val: val is not None and "price" in val)
-            retrive_product_info(price_div, pd)
+            if price_div:
+                retrive_product_info(price_div, pd)
         has_next_page = sauce.find("li", class_="forward") is not None
         page = page + 1 if has_next_page else page
         try:
@@ -167,17 +168,16 @@ def get_costco_product(url):
             print("Done")
             break
         time.sleep(5)
-    driver.close()
 
 
-def main():
+if __name__ == '__main__':
     # get_url_from_site_map()
     # get_shop_by_category_links(domain)
     new_list = set(get_url_from_site_map())
-    with open("costco_all_sites.txt") as f:
+    with open("src/costco_all_sites.txt") as f:
         old_set = set(eval(f.read()))
     if new_list != old_set:
         old_set = old_set.union(new_list)
-        with open("costco_all_sites_new.txt", "w") as f:
+        with open("src/costco_all_sites_new.txt", "w") as f:
             f.write(str(list(old_set)))
     Pool(os.cpu_count()).map(get_costco_product, list(old_set))
