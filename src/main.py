@@ -169,7 +169,7 @@ def get_costco_product(url):
             break
         time.sleep(5)
 
-
+        
 if __name__ == '__main__':
     # get_url_from_site_map()
     # get_shop_by_category_links(domain)
